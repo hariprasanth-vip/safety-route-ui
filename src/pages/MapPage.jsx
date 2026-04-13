@@ -33,6 +33,7 @@ export default function MapPage() {
   const [routes, setRoutes] = useState([]);
   const [safeRoute, setSafeRoute] = useState(null);
   const [showRoutes, setShowRoutes] = useState(false);
+  const [showSafetyOverlay, setShowSafetyOverlay] = useState(true);
 
   // Risk zones data
   const riskZones = [
@@ -42,8 +43,14 @@ export default function MapPage() {
     { lat: 11.90, lng: 79.81, risk: 2, name: "Safe Zone" },
     { lat: 11.93, lng: 79.78, risk: 6, name: "Moderate Risk" },
   ];
-
-  // CCTV locations
+  const safetyZones = [
+    { lat: 11.92, lng: 79.82, risk: "high", name: "⚠️ HIGH CRIME ZONE - Avoid after 6PM", radius: 250 },
+    { lat: 11.95, lng: 79.85, risk: "high", name: "🚗 ACCIDENT PRONE AREA - Drive carefully", radius: 200 },
+    { lat: 11.93, lng: 79.78, risk: "high", name: "🌙 POOR LIGHTING - Isolated area", radius: 220 },
+    { lat: 11.88, lng: 79.79, risk: "low", name: "✅ SAFE ZONE - Police patrolled", radius: 180 },
+    { lat: 11.90, lng: 79.81, risk: "low", name: "🏘️ RESIDENTIAL SAFE ZONE - High CCTV", radius: 200 },
+    { lat: 11.89, lng: 79.83, risk: "low", name: "🛡️ WELL-LIT AREA - 24/7 active", radius: 190 },
+  ];
   const cctvLocations = [
     { lat: 11.91, lng: 79.80, type: "Police Camera" },
     { lat: 11.89, lng: 79.82, type: "Traffic Camera" },
@@ -108,7 +115,8 @@ export default function MapPage() {
     );
   }, []);
 
-  const handleFindRoutes = () => {
+    const handleFindRoutes = () => {
+    // TEMPORARY: Using mock data instead of API call
     const generatedRoutes = [
       {
         id: 1,
@@ -143,7 +151,12 @@ export default function MapPage() {
     ];
 
     setRoutes(generatedRoutes);
-    const safest = getSafeRoute(generatedRoutes);
+    
+    // Find safest route manually (without API)
+    const safest = generatedRoutes.reduce((prev, current) => 
+      (prev.safetyScore > current.safetyScore) ? prev : current
+    );
+    
     setSafeRoute(safest);
     setShowRoutes(true);
   };
@@ -221,7 +234,12 @@ export default function MapPage() {
                     className="w-full px-4 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-gray-400"
                   />
                 </div>
-
+                <button
+                  onClick={() => setShowSafetyOverlay(!showSafetyOverlay)}
+                  className="w-full mt-2 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm hover:bg-white/20 transition-all"
+                >
+                  {showSafetyOverlay ? "🙈 Hide" : "👁️ Show"} Safety Zones
+                </button>
                 <button
                   onClick={handleFindRoutes}
                   disabled={!destination}
@@ -337,7 +355,31 @@ export default function MapPage() {
                       </Popup>
                     </Circle>
                   ))}
-
+                  {/* 🔴🟢 SAFETY ZONES OVERLAY */}
+                  {showSafetyOverlay && safetyZones.map((zone, index) => (
+                  <Circle
+                    key={index}
+                    center={[zone.lat, zone.lng]}
+                    radius={zone.radius || 200}
+                    pathOptions={{
+                      color: zone.risk === "high" ? "#ef4444" : "#10b981",
+                      fillColor: zone.risk === "high" ? "#ef4444" : "#10b981",
+                      fillOpacity: 0.35,
+                      weight: 2,
+                      opacity: 0.8,
+                    }}
+                  >
+                    <Popup>
+                      <div className="text-center">
+                        <strong className={zone.risk === "high" ? "text-red-500" : "text-green-500"}>
+                          {zone.risk === "high" ? "🔴 UNSAFE ZONE" : "🟢 SAFE ZONE"}
+                        </strong>
+                        <br />
+                        <span className="text-sm">{zone.name}</span>
+                      </div>
+                    </Popup>
+                  </Circle>
+                ))}
                   {/* CCTV Locations */}
                   {cctvLocations.map((cctv, index) => (
                     <Marker
